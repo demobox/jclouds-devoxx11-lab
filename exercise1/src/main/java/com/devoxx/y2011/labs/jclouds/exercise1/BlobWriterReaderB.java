@@ -103,7 +103,7 @@ public class BlobWriterReaderB {
     
     private static void tryDeleteContainer(BlobStore store, String containerName) {
         try {
-            store.clearContainer(containerName);
+            // no need for a "clearContainer" call with Ninefold
             store.deleteContainer(containerName);
         } catch (Exception exception) {
             System.err.format("Unable to delete container due to: %s%n", exception.getMessage());
