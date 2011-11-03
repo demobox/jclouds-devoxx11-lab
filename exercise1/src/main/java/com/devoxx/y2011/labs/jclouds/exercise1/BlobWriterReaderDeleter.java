@@ -42,10 +42,10 @@ import com.google.common.io.Files;
  * @since 2 Nov 2011
  *
  */
-public class BlobWriterReader {
+public class BlobWriterReaderDeleter {
     private final BlobStoreContext ctx;
     
-    public BlobWriterReader(String provider, String identity, String credential) {
+    public BlobWriterReaderDeleter(String provider, String identity, String credential) {
         // create context for filesystem container
         Properties config = new Properties();
         config.put(FilesystemConstants.PROPERTY_BASEDIR, 
@@ -54,13 +54,13 @@ public class BlobWriterReader {
                 ImmutableSet.of(new Log4JLoggingModule()), config);
     }
     
-    public void writeThenRead(byte[] payload, int numIterations) throws IOException {
+    public void writeReadAndDelete(byte[] payload, int numIterations) throws IOException {
         BlobStore store = ctx.getBlobStore();
         final String containerName = "test-container";
         final String blobNamePrefix = "test-blob";
         String blobName; 
         for (int i = 0; i < numIterations; i++) {
-            System.out.format("Write/read cycle #%d%n", i);
+            System.out.format("---%nWrite/read/delete cycle #%d%n", i);
             blobName = blobNamePrefix + i;
             System.out.format("Writing blob '%s'...%n", blobName);
             store.putBlob(containerName, store.blobBuilder(blobName).payload(payload).build());
@@ -72,6 +72,13 @@ public class BlobWriterReader {
                         Arrays.toString(payload), Arrays.toString(payloadRead));
             } else {
                 System.out.println("Blob read matches input");
+            }
+            System.out.println("Deleting blob...");
+            store.removeBlob(containerName, blobName);
+            if (store.blobExists(containerName, blobName)) {
+                System.err.println("Blob still present even after 'removeBlob' call");
+            } else {
+                System.out.println("Blob no longer exists");
             }
         }
         tryDeleteContainer(store, containerName);
@@ -93,13 +100,13 @@ public class BlobWriterReader {
     
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
-            System.out.println("\nUsage: BlobWriterReader <provider> <identity> <credential>");
+            System.out.format("%nUsage: %s <provider> <identity> <credential>%n", BlobWriterReaderDeleter.class.getSimpleName());
             System.exit(1);
         }
-        BlobWriterReader readerWriter = new BlobWriterReader(args[0], args[1], args[2]);
+        BlobWriterReaderDeleter readerWriter = new BlobWriterReaderDeleter(args[0], args[1], args[2]);
         try {
             byte[] blob = Files.toByteArray(new File("src/main/resources/programmer-jokes.txt"));
-            readerWriter.writeThenRead(blob, 5);
+            readerWriter.writeReadAndDelete(blob, 5);
         } finally {
             readerWriter.cleanup();
         }

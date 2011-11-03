@@ -20,12 +20,9 @@
  */
 package com.devoxx.y2011.labs.jclouds.exercise1;
 
-import static java.lang.String.format;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
@@ -41,29 +38,24 @@ import com.google.common.io.Files;
  * @since 2 Nov 2011
  *
  */
-public class BlobWriterReaderB {
-    private static final int MAX_CONSISTENCY_WAITS = 10;
-    private static final int CONSISTENCY_WAIT_SECS = 2;
-    
+public class BlobWriterReaderDeleterB {
     private final BlobStoreContext ctx;
     
-    public BlobWriterReaderB(String provider, String identity, String credential) {
+    public BlobWriterReaderDeleterB(String provider, String identity, String credential) {
         ctx = new BlobStoreContextFactory().createContext(provider, identity, credential, 
                 ImmutableSet.of(new Log4JLoggingModule()));
     }
     
-    public void writeThenRead(byte[] payload, int numIterations) throws IOException {
+    public void writeReadAndDelete(byte[] payload, int numIterations) throws IOException {
         BlobStore store = ctx.getBlobStore();
         final String containerName = "test-container";
         final String blobNamePrefix = "test-blob";
         String blobName; 
         for (int i = 0; i < numIterations; i++) {
-            System.out.format("Write/read cycle #%d%n", i);
+            System.out.format("---%nWrite/read/delete cycle #%d%n", i);
             blobName = blobNamePrefix + i;
             System.out.format("Writing blob '%s'...%n", blobName);
             store.putBlob(containerName, store.blobBuilder(blobName).payload(payload).build());
-            // don't need this with Atmos..?
-            waitUntilConsistent(store, containerName, blobName, payload.length);
             System.out.println("Reading blob back...");
             byte[] payloadRead = ByteStreams.toByteArray(
                     store.getBlob(containerName, blobName).getPayload().getInput());
@@ -73,37 +65,19 @@ public class BlobWriterReaderB {
             } else {
                 System.out.println("Blob read matches input");
             }
+            System.out.println("Deleting blob...");
+            store.removeBlob(containerName, blobName);
+            if (store.blobExists(containerName, blobName)) {
+                System.err.println("Blob still present even after 'removeBlob' call");
+            } else {
+                System.out.println("Blob no longer exists");
+            }
         }
         tryDeleteContainer(store, containerName);
     }
     
-    private static void waitUntilConsistent(BlobStore store, String containerName, 
-            String blobName, int expectedSize) throws IOException {
-        for (int i = 0; i < MAX_CONSISTENCY_WAITS; i++) {
-            Long numBytesAvailable = store.blobMetadata(containerName, blobName)
-                                    .getContentMetadata().getContentLength();
-            if (numBytesAvailable == expectedSize) {
-                System.out.format("Expected bytes (%d) available after %d waits%n", 
-                        expectedSize, i);
-                return;
-            }
-            System.out.format("After %d waits, %d bytes available but waiting for %d%n", 
-                    i, numBytesAvailable, expectedSize);
-            sleepUninterruptably(CONSISTENCY_WAIT_SECS);
-        }
-        throw new IOException(format("After %d waits of %ds, blob '%s' in '%s' is still not eventually consistent",
-                MAX_CONSISTENCY_WAITS, CONSISTENCY_WAIT_SECS, blobName, containerName));
-    }
-    
-    private static void sleepUninterruptably(int secs) {
-        try {
-            TimeUnit.SECONDS.sleep(secs);
-        } catch (InterruptedException ignored) {}
-    }
-    
     private static void tryDeleteContainer(BlobStore store, String containerName) {
         try {
-            // no need for a "clearContainer" call with Ninefold
             store.deleteContainer(containerName);
         } catch (Exception exception) {
             System.err.format("Unable to delete container due to: %s%n", exception.getMessage());
@@ -116,13 +90,13 @@ public class BlobWriterReaderB {
     
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
-            System.out.println("\nUsage: BlobWriterReader <provider> <identity> <credential>");
+            System.out.format("%nUsage: %s <provider> <identity> <credential>%n", BlobWriterReaderDeleterB.class.getSimpleName());
             System.exit(1);
         }
-        BlobWriterReaderB readerWriter = new BlobWriterReaderB(args[0], args[1], args[2]);
+        BlobWriterReaderDeleterB readerWriter = new BlobWriterReaderDeleterB(args[0], args[1], args[2]);
         try {
             byte[] blob = Files.toByteArray(new File("src/main/resources/programmer-jokes.txt"));
-            readerWriter.writeThenRead(blob, 5);
+            readerWriter.writeReadAndDelete(blob, 5);
         } finally {
             readerWriter.cleanup();
         }
