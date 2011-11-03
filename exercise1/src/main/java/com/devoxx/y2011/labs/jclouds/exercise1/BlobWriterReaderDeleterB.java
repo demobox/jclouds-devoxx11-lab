@@ -48,7 +48,7 @@ public class BlobWriterReaderDeleterB {
     
     public void writeReadAndDelete(byte[] payload, int numIterations) throws IOException {
         BlobStore store = ctx.getBlobStore();
-        final String containerName = "test-container";
+        final String containerName = "test-container-1";
         final String blobNamePrefix = "test-blob";
         String blobName; 
         for (int i = 0; i < numIterations; i++) {

@@ -51,7 +51,7 @@ public class MultiFileUploader {
     
     public void uploadFiles(List<File> files) throws IOException {
         BlobStore store = ctx.getBlobStore();
-        final String containerName = "test-container";
+        final String containerName = "test-container-3";
         long startTimeMillis = System.currentTimeMillis();
         System.out.format("Starting upload of %d files%n", files.size());
         for (File file : files) {

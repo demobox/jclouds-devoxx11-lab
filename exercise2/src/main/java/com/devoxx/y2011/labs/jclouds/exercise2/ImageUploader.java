@@ -46,7 +46,7 @@ public class ImageUploader {
     
     public void uploadImage(File image) throws IOException {
         BlobStore store = ctx.getBlobStore();
-        final String containerName = "test-container";
+        final String containerName = "test-container-2";
         final String blobName = "uploadedImage";
         System.out.format("Creating public container '%s'%n", containerName);
         store.createContainerInLocation(null, containerName, CreateContainerOptions.Builder.publicRead());

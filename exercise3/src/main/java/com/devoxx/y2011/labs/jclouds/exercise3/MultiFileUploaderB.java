@@ -55,7 +55,7 @@ public class MultiFileUploaderB {
     
     public void uploadFiles(List<File> files) throws IOException {
         AsyncBlobStore store = ctx.getAsyncBlobStore();
-        final String containerName = "test-container";
+        final String containerName = "test-container-3";
         long startTimeMillis = System.currentTimeMillis();
         int numFiles = files.size();
         CountDownLatch latch = new CountDownLatch(numFiles);

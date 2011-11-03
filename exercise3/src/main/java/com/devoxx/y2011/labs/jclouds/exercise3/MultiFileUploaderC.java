@@ -56,7 +56,7 @@ public class MultiFileUploaderC {
     }
     
     public void uploadFiles(List<File> files) throws IOException {
-        final String containerName = "test-container";
+        final String containerName = "test-container-3";
         BlobMap map = ctx.createBlobMap(containerName);
         final BlobBuilder builder = map.blobBuilder();
         List<Blob> blobs = transform(files, new Function<File, Blob>() {
