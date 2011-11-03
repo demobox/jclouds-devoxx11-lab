@@ -1,0 +1,13 @@
+# use glob syntax.
+syntax: glob
+target/
+test-output/
+bin/
+.settings/
+.classpath
+.project
+.idea/
+*.iml
+*.ipr
+*.iws
+TAGS
