@@ -79,6 +79,8 @@ public class BlobWriterReader {
     
     private static void tryDeleteContainer(BlobStore store, String containerName) {
         try {
+            // throws IOException without the "clearContainer" call
+            store.clearContainer(containerName);
             store.deleteContainer(containerName);
         } catch (Exception exception) {
             System.err.format("Unable to delete container due to: %s%n", exception.getMessage());
