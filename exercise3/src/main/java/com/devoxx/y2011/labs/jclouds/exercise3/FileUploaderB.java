@@ -28,39 +28,45 @@ import java.util.concurrent.TimeUnit;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
+import org.jclouds.blobstore.domain.Blob;
 import org.jclouds.logging.log4j.config.Log4JLoggingModule;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * @author aphillips
  * @since 2 Nov 2011
  *
  */
-public class FileUploaderC {
+public class FileUploaderB {
     private static final int QUERY_RETRY_INTERVAL_MILLIS = 100;
     
     private final BlobStoreContext ctx;
     
-    public FileUploaderC(String provider, String identity, String credential) {
+    public FileUploaderB(String provider, String identity, String credential) {
         ctx = new BlobStoreContextFactory().createContext(provider, identity, credential, 
                 ImmutableSet.of(new Log4JLoggingModule()));
     }
     
     public void uploadFile(File file) throws IOException, InterruptedException, ExecutionException {
         AsyncBlobStore store = ctx.getAsyncBlobStore();
-        final String containerName = "test-container-x";
+        final String containerName = "test-container-3";
         long fileSize = file.length();
         System.out.format("Starting upload of %d bytes%n", fileSize);
         String filename = file.getName();
-        store.putBlob(containerName, store.blobBuilder(filename).payload(file).build());
+        ListenableFuture<String> putBlobOperation = store.putBlob(containerName, store.blobBuilder(filename).payload(file).build());
         waitUntilExists(store, containerName, filename);
-        waitUntilAvailable(store, containerName, filename);
         byte[] payloadRead = ByteStreams.toByteArray(
                 store.getBlob(containerName, filename).get().getPayload().getInput());
         System.out.format("Retrieved blob size: %d bytes%n", payloadRead.length);
         System.out.format("Blob metadata: %s%n", store.blobMetadata(containerName, filename).get().getContentMetadata());
+        waitForUpload(putBlobOperation);
+        Blob retrievedBlob = store.getBlob(containerName, filename).get();
+        payloadRead = ByteStreams.toByteArray(retrievedBlob.getPayload().getInput());
+        System.out.format("Retrieved blob size now: %d bytes%n", payloadRead.length);
+        System.out.format("Blob metadata now: %s%n", store.blobMetadata(containerName, filename).get().getContentMetadata());
         tryDeleteContainer(store, containerName);
     }
     
@@ -72,13 +78,10 @@ public class FileUploaderC {
         System.out.println("Blob exists");
     }
     
-    private static void waitUntilAvailable(AsyncBlobStore store, String containerName, String blobName) throws InterruptedException, ExecutionException {
-        while (store.blobMetadata(containerName, blobName).get()
-                .getContentMetadata().getContentLength() == null) {
-            TimeUnit.MILLISECONDS.sleep(QUERY_RETRY_INTERVAL_MILLIS);
-            System.out.println("Waiting for blob to become available");
-        }
-        System.out.println("Blob available");
+    private static void waitForUpload(ListenableFuture<String> uploadOperation) throws InterruptedException, ExecutionException {
+        System.out.println("Waiting for upload to complete");
+        uploadOperation.get();
+        System.out.println("Upload completed");        
     }
     
     private static void tryDeleteContainer(AsyncBlobStore store, String containerName) {
@@ -96,10 +99,10 @@ public class FileUploaderC {
     
     public static void main(String[] args) throws Exception {
         if (args.length < 3) {
-            System.out.format("%nUsage: %s <provider> <identity> <credential>%n", FileUploaderC.class.getSimpleName());
+            System.out.format("%nUsage: %s <provider> <identity> <credential>%n", FileUploaderB.class.getSimpleName());
             System.exit(1);
         }
-        FileUploaderC uploader = new FileUploaderC(args[0], args[1], args[2]);
+        FileUploaderB uploader = new FileUploaderB(args[0], args[1], args[2]);
         try {
             uploader.uploadFile(new File("src/main/resources/s3-qrc.pdf"));
         } finally {

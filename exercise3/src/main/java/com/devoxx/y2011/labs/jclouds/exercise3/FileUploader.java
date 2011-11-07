@@ -59,7 +59,7 @@ public class FileUploader {
     
     public void uploadFile(File file) throws IOException, InterruptedException, ExecutionException {
         AsyncBlobStore store = ctx.getAsyncBlobStore();
-        final String containerName = "test-container-x";
+        final String containerName = "test-container-3";
         long fileSize = file.length();
         System.out.format("Starting upload of %d bytes%n", fileSize);
         String filename = file.getName();

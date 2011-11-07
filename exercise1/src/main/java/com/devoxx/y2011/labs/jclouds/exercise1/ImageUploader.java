@@ -18,7 +18,7 @@
  * limitations under the License.
  * ====================================================================
  */
-package com.devoxx.y2011.labs.jclouds.exercise2;
+package com.devoxx.y2011.labs.jclouds.exercise1;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +46,7 @@ public class ImageUploader {
     
     public void uploadImage(File image) throws IOException {
         BlobStore store = ctx.getBlobStore();
-        final String containerName = "test-container-2";
+        final String containerName = "test-container-1";
         final String blobName = "uploadedImage";
         System.out.format("Creating public container '%s'%n", containerName);
         store.createContainerInLocation(null, containerName, CreateContainerOptions.Builder.publicRead());

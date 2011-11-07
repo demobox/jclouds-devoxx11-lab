@@ -18,7 +18,7 @@
  * limitations under the License.
  * ====================================================================
  */
-package com.devoxx.y2011.labs.jclouds.exercise3;
+package com.devoxx.y2011.labs.jclouds.exercise2;
 
 import static com.google.common.collect.Lists.transform;
 
@@ -56,7 +56,7 @@ public class MultiFileUploaderC {
     }
     
     public void uploadFiles(List<File> files) throws IOException {
-        final String containerName = "test-container-3";
+        final String containerName = "test-container-2";
         BlobMap map = ctx.createBlobMap(containerName);
         final BlobBuilder builder = map.blobBuilder();
         List<Blob> blobs = transform(files, new Function<File, Blob>() {

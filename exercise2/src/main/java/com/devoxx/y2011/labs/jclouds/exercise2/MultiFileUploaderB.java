@@ -18,14 +18,17 @@
  * limitations under the License.
  * ====================================================================
  */
-package com.devoxx.y2011.labs.jclouds.exercise3;
+package com.devoxx.y2011.labs.jclouds.exercise2;
+
+import static org.jclouds.concurrent.MoreExecutors.sameThreadExecutor;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
-import org.jclouds.blobstore.BlobStore;
+import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
 import org.jclouds.logging.log4j.config.Log4JLoggingModule;
@@ -33,41 +36,62 @@ import org.jclouds.logging.log4j.config.Log4JLoggingModule;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * @author aphillips
  * @since 2 Nov 2011
  *
  */
-public class MultiFileUploader {
+public class MultiFileUploaderB {
     private static final String RESOURCE_DIR = "src/main/resources";
     
     private final BlobStoreContext ctx;
     
-    public MultiFileUploader(String provider, String identity, String credential) {
+    public MultiFileUploaderB(String provider, String identity, String credential) {
         ctx = new BlobStoreContextFactory().createContext(provider, identity, credential, 
                 ImmutableSet.of(new Log4JLoggingModule()));
     }
     
     public void uploadFiles(List<File> files) throws IOException {
-        BlobStore store = ctx.getBlobStore();
-        final String containerName = "test-container-3";
+        AsyncBlobStore store = ctx.getAsyncBlobStore();
+        final String containerName = "test-container-2";
         long startTimeMillis = System.currentTimeMillis();
-        System.out.format("Starting upload of %d files%n", files.size());
+        int numFiles = files.size();
+        CountDownLatch latch = new CountDownLatch(numFiles);
+        System.out.format("Starting upload of %d files%n", numFiles);
         for (File file : files) {
             String filename = file.getName();
-            System.out.format("Uploading '%s'...%n", filename);
-            store.putBlob(containerName, 
-                    store.blobBuilder(filename).payload(file).build());
+            System.out.format("Starting upload of '%s'...%n", filename);
+            addCountdownOnCompletionListener(latch, store.putBlob(containerName, 
+                    store.blobBuilder(filename).payload(file).build()));
         }
-        System.out.format("Uploaded %d files in %dms", files.size(), 
-                System.currentTimeMillis() - startTimeMillis);
-        tryDeleteContainer(store, containerName);
+        try {
+            latch.await();
+            System.out.format("Uploaded %d files in %dms", numFiles, 
+                    System.currentTimeMillis() - startTimeMillis);
+        } catch (InterruptedException exception) {
+            System.err.println("Interrupted whilst waiting for uploads to complete");
+        } finally {
+            tryDeleteContainer(store, containerName);
+        }
     }
     
-    private static void tryDeleteContainer(BlobStore store, String containerName) {
+    private void addCountdownOnCompletionListener(final CountDownLatch latch,
+            ListenableFuture<String> putBlobOperation) {
+        putBlobOperation.addListener(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println("Upload of a file completed");
+                    latch.countDown();
+                }
+            }, sameThreadExecutor());
+    }
+
+    private static void tryDeleteContainer(AsyncBlobStore store, String containerName) {
         try {
-            store.deleteContainer(containerName);
+            // block until complete
+            store.deleteContainer(containerName).get();
         } catch (Exception exception) {
             System.err.format("Unable to delete container due to: %s%n", exception.getMessage());
         }
@@ -79,10 +103,10 @@ public class MultiFileUploader {
     
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
-            System.out.format("%nUsage: %s <provider> <identity> <credential>%n", MultiFileUploader.class.getSimpleName());
+            System.out.format("%nUsage: %s <provider> <identity> <credential>%n", MultiFileUploaderB.class.getSimpleName());
             System.exit(1);
         }
-        MultiFileUploader uploader = new MultiFileUploader(args[0], args[1], args[2]);
+        MultiFileUploaderB uploader = new MultiFileUploaderB(args[0], args[1], args[2]);
         try {
             uploader.uploadFiles(toFilesInResources("s3-api.pdf", "s3-dg.pdf", "s3-gsg.pdf",
                     "s3-qrc.pdf", "s3-ug.pdf"));

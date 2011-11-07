@@ -22,57 +22,40 @@ package com.devoxx.y2011.labs.jclouds.exercise1;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
+import org.jclouds.blobstore.options.CreateContainerOptions;
 import org.jclouds.logging.log4j.config.Log4JLoggingModule;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Files;
 
 /**
  * @author aphillips
  * @since 2 Nov 2011
  *
  */
-public class BlobWriterReaderDeleterB {
+public class ImageUploaderB {
     private final BlobStoreContext ctx;
     
-    public BlobWriterReaderDeleterB(String provider, String identity, String credential) {
+    public ImageUploaderB(String provider, String identity, String credential) {
         ctx = new BlobStoreContextFactory().createContext(provider, identity, credential, 
                 ImmutableSet.of(new Log4JLoggingModule()));
     }
     
-    public void writeReadAndDelete(byte[] payload, int numIterations) throws IOException {
+    public void uploadImage(File image) throws IOException {
         BlobStore store = ctx.getBlobStore();
         final String containerName = "test-container-1";
-        final String blobNamePrefix = "test-blob";
-        String blobName; 
-        for (int i = 0; i < numIterations; i++) {
-            System.out.format("---%nWrite/read/delete cycle #%d%n", i);
-            blobName = blobNamePrefix + i;
-            System.out.format("Writing blob '%s'...%n", blobName);
-            store.putBlob(containerName, store.blobBuilder(blobName).payload(payload).build());
-            System.out.println("Reading blob back...");
-            byte[] payloadRead = ByteStreams.toByteArray(
-                    store.getBlob(containerName, blobName).getPayload().getInput());
-            if (!Arrays.equals(payload, payloadRead)) {
-                System.err.format("Contents of blob read didn't match '%s' but were '%s'%n",
-                        Arrays.toString(payload), Arrays.toString(payloadRead));
-            } else {
-                System.out.println("Blob read matches input");
-            }
-            System.out.println("Deleting blob...");
-            store.removeBlob(containerName, blobName);
-            if (store.blobExists(containerName, blobName)) {
-                System.err.println("Blob still present even after 'removeBlob' call");
-            } else {
-                System.out.println("Blob no longer exists");
-            }
-        }
+        final String blobName = "uploadedImage";
+        System.out.format("Creating public container '%s'%n", containerName);
+        store.createContainerInLocation(null, containerName, CreateContainerOptions.Builder.publicRead());
+        store.putBlob(containerName, store.blobBuilder(blobName).payload(image)
+                                     .contentType("image/jpeg").build());
+        System.out.format("Now please open '%s' in a browser%nPress any key, then <enter>: ", 
+                store.blobMetadata(containerName, blobName).getPublicUri());
+        // pause
+        System.in.read();
         tryDeleteContainer(store, containerName);
     }
     
@@ -90,15 +73,14 @@ public class BlobWriterReaderDeleterB {
     
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
-            System.out.format("%nUsage: %s <provider> <identity> <credential>%n", BlobWriterReaderDeleterB.class.getSimpleName());
+            System.out.format("%nUsage: %s <provider> <identity> <credential>%n", ImageUploaderB.class.getSimpleName());
             System.exit(1);
         }
-        BlobWriterReaderDeleterB readerWriter = new BlobWriterReaderDeleterB(args[0], args[1], args[2]);
+        ImageUploaderB uploader = new ImageUploaderB(args[0], args[1], args[2]);
         try {
-            byte[] blob = Files.toByteArray(new File("src/main/resources/programmer-jokes.txt"));
-            readerWriter.writeReadAndDelete(blob, 5);
+            uploader.uploadImage(new File("src/main/resources/cloud.jpg"));
         } finally {
-            readerWriter.cleanup();
+            uploader.cleanup();
         }
     }
 }
