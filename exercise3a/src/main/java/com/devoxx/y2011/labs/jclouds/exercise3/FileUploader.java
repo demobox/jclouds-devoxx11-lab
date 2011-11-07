@@ -20,14 +20,18 @@
  */
 package com.devoxx.y2011.labs.jclouds.exercise3;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
+import org.jclouds.filesystem.reference.FilesystemConstants;
 import org.jclouds.logging.log4j.config.Log4JLoggingModule;
 
 import com.google.common.collect.ImmutableSet;
@@ -45,8 +49,12 @@ public class FileUploader {
     private final BlobStoreContext ctx;
     
     public FileUploader(String provider, String identity, String credential) {
+        // create context for filesystem container
+        Properties config = new Properties();
+        config.put(FilesystemConstants.PROPERTY_BASEDIR, 
+                checkNotNull(System.getProperty("java.io.tmpdir"), "java.io.tmpdir"));
         ctx = new BlobStoreContextFactory().createContext(provider, identity, credential, 
-                ImmutableSet.of(new Log4JLoggingModule()));
+                ImmutableSet.of(new Log4JLoggingModule()), config);
     }
     
     public void uploadFile(File file) throws IOException, InterruptedException, ExecutionException {
@@ -83,7 +91,8 @@ public class FileUploader {
     
     private static void tryDeleteContainer(AsyncBlobStore store, String containerName) {
         try {
-            // block until complete
+            // throws IOException without the "clearContainer" call
+            store.clearContainer(containerName).get();
             store.deleteContainer(containerName).get();
         } catch (Exception exception) {
             System.err.format("Unable to delete container due to: %s%n", exception.getMessage());
