@@ -31,17 +31,17 @@ import org.jclouds.logging.log4j.config.Log4JLoggingModule;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * @author aphillips
+ * @author aphillips, grkvlt
  * @since 2 Nov 2011
  */
-public class ImageUploaderB {
+public class ImageUploaderC {
     public static final String CONTAINER_NAME = "test-container-1";
     public static final String BLOB_NAME = "uploadedImage";
 
     private final BlobStoreContext ctx;
     private final BlobStore store;
     
-    public ImageUploaderB(String provider, String identity, String credential) {
+    public ImageUploaderC(String provider, String identity, String credential) {
         ctx = new BlobStoreContextFactory().createContext(provider, identity, credential, ImmutableSet.of(new Log4JLoggingModule()));
         System.out.printf("Provider '%s' uses %s consistency%n", provider, ctx.getConsistencyModel());
         store = ctx.getBlobStore();
@@ -49,8 +49,8 @@ public class ImageUploaderB {
     
     public void uploadImage(File image) throws IOException {
         createContainer(CONTAINER_NAME);
-        storeBlob(CONTAINER_NAME, BLOB_NAME, image);
-        System.out.printf("Now please open '%s' in a browser%nPress any key, then <enter>: ", getImageUri().toASCIIString());
+        String blobName = storeBlob(CONTAINER_NAME, image);
+        System.out.printf("Now please open '%s' in a browser%nPress any key, then <enter>: ", getImageUri(blobName).toASCIIString());
         System.in.read(); // pause
         tryDeleteContainer(CONTAINER_NAME);
     }
@@ -60,20 +60,22 @@ public class ImageUploaderB {
         store.createContainerInLocation(null, containerName, CreateContainerOptions.Builder.publicRead());
     }
 
-    public void storeBlob(String containerName, String blobName, File image) {
+    public String storeBlob(String containerName, File image) {
+        String blobName = image.getName();
         System.out.printf("Storing file '%s' as '%s'%n", image.getPath(), blobName);
         store.putBlob(containerName, store.blobBuilder(blobName).payload(image).contentType("image/jpeg").build());
+        return blobName;
     }
 
-    public URI getImageUri() {
-        return store.blobMetadata(CONTAINER_NAME, BLOB_NAME).getPublicUri();
+    public URI getImageUri(String blobName) {
+        return store.blobMetadata(CONTAINER_NAME, blobName).getPublicUri();
     }
-         
+    
     public void tryDeleteContainer(String containerName) {
         System.out.printf("Deleting public container '%s'%n", containerName);
-             try {
+        try {
             store.deleteContainer(containerName);
-             } catch (Exception exception) {
+        } catch (Exception exception) {
             System.err.printf("Unable to delete container due to: %s%n", exception.getMessage());
         }
     }
@@ -87,7 +89,7 @@ public class ImageUploaderB {
             System.out.format("%nUsage: %s <provider> <identity> <credential>%n", ImageUploader.class.getSimpleName());
             System.exit(1);
         }
-        ImageUploaderB uploader = new ImageUploaderB(args[0], args[1], args[2]);
+        ImageUploaderC uploader = new ImageUploaderC(args[0], args[1], args[2]);
         try {
             uploader.uploadImage(new File("src/main/resources/cloud.jpg"));
         } finally {
