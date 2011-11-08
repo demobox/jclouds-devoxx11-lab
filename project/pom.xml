@@ -74,8 +74,8 @@
         </developer>
         <developer>
             <name>Andrew Kennedy</name>
-            <id></id>
-            <email></email>
+            <id>grkvlt</id>
+            <email>grkvlt -at- apache -dot- org</email>
             <roles>
                 <role>Java Developer</role>
             </roles>
@@ -105,6 +105,11 @@
             <version>${jclouds.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.jclouds.provider</groupId>
+            <artifactId>aws-s3</artifactId>
+            <version>${jclouds.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.jclouds.api</groupId>
             <artifactId>filesystem</artifactId>
             <version>${jclouds.version}</version>
@@ -113,6 +118,12 @@
             <groupId>org.jclouds.driver</groupId>
             <artifactId>jclouds-log4j</artifactId>
             <version>${jclouds.version}</version>
+        </dependency>
+        <dependency>
+        	<groupId>org.testng</groupId>
+        	<artifactId>testng</artifactId>
+        	<version>6.0.1</version>
+        	<scope>test</scope>
         </dependency>
     </dependencies>
 
