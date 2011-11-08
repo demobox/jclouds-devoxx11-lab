@@ -29,4 +29,7 @@
     </parent>
     <artifactId>exercise1</artifactId>
     <name>jclouds Devoxx 2011 Lab Exercise 1</name>
+    <build>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+    </build>
 </project>
