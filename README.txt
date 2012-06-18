@@ -1,0 +1,1 @@
+This repository has moved to: https://github.com/jclouds/jclouds-cloud-storage-workshop
